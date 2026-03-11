@@ -118,8 +118,11 @@ db = client[DB_NAME]
 print("MongoDB connected")
 print(db.list_collection_names())
 
+notifications_collection = db["notifications"]
 
 subscriptions_collection = db["subscriptions"]
+
+
 
 
 # -----------------------------
@@ -175,6 +178,16 @@ async def subscribe(request: Request):
 
     return {"success": True}
 
+
+@app.get("/subscriber_count")
+async def subscriber_count():
+    count = subscriptions_collection.count_documents({"endpoint": {"$exists": True}})
+    return {"count": count}
+# @app.get("/subscriber_count")
+# async def subscriber_count():
+#     count = subscriptions_collection.count_documents({"endpoint": {"$exists": True}})
+#     return {"count": count}
+
 # -----------------------------
 # Send Notification Endpoint
 # -----------------------------
@@ -198,29 +211,150 @@ async def subscribe(request: Request):
     
 #     return {"success": True}
 
+# @app.post("/send_notification")
+# async def send_notification(request: Request):
+
+#     data = await request.json()
+
+#     subscribers = list(subscriptions_collection.find())
+
+#     for sub in subscribers:
+#         try:
+#             webpush(
+#                 subscription_info={
+#                     "endpoint": sub["endpoint"],
+#                     "keys": sub["keys"]
+#                 },
+#                 data=json.dumps(data),
+#                 vapid_private_key=VAPID_PRIVATE_KEY,
+#                 vapid_claims=VAPID_CLAIMS
+#             )
+#         except Exception as e:
+#             print("Push error:", e)
+
+#     return {"success": True}
+
+
+# @app.post("/send_notification")
+# async def send_notification(request: Request):
+#     data = await request.json()
+
+#     subscribers = subscriptions_collection.find({"endpoint": {"$exists": True}})
+
+#     for subscriber in subscribers:
+#         try:
+#             webpush(
+#                 subscription_info={
+#                     "endpoint": subscriber["endpoint"],
+#                     "keys": subscriber["keys"]
+#                 },
+#                 data=json.dumps(data),
+#                 vapid_private_key=VAPID_PRIVATE_KEY,
+#                 vapid_claims=VAPID_CLAIMS
+#             )
+
+#         except WebPushException as ex:
+#             print("Push failed:", ex)
+
+#     return {"success": True}
+
+# @app.post("/send_notification")
+# async def send_notification(request: Request):
+
+#     data = await request.json()
+
+#     title = data.get("title")
+#     body = data.get("body")
+#     image = data.get("image")
+#     url = data.get("url")
+
+#     payload = {
+#         "title": title,
+#         "body": body,
+#         "image": image,
+#         "url": url
+#     }
+
+#     subscribers = subscriptions_collection.find({"endpoint": {"$exists": True}})
+
+#     for subscriber in subscribers:
+#         try:
+#             webpush(
+#                 subscription_info={
+#                     "endpoint": subscriber["endpoint"],
+#                     "keys": subscriber["keys"]
+#                 },
+#                 data=json.dumps(payload),
+#                 vapid_private_key=VAPID_PRIVATE_KEY,
+#                 vapid_claims=VAPID_CLAIMS
+#             )
+
+#         except WebPushException as ex:
+#             print("Push failed:", ex)
+
+#     return {"success": True}
+
+
 @app.post("/send_notification")
 async def send_notification(request: Request):
 
     data = await request.json()
 
-    subscribers = list(subscriptions_collection.find())
+    payload = {
+        "title": data.get("title"),
+        "body": data.get("body"),
+        "image": data.get("image"),
+        "url": data.get("url"),
+        "time": str(datetime.datetime.now())
+    }
 
-    for sub in subscribers:
+    subscribers = subscriptions_collection.find({"endpoint": {"$exists": True}})
+
+    for subscriber in subscribers:
         try:
             webpush(
                 subscription_info={
-                    "endpoint": sub["endpoint"],
-                    "keys": sub["keys"]
+                    "endpoint": subscriber["endpoint"],
+                    "keys": subscriber["keys"]
                 },
-                data=json.dumps(data),
+                data=json.dumps(payload),
                 vapid_private_key=VAPID_PRIVATE_KEY,
                 vapid_claims=VAPID_CLAIMS
             )
-        except Exception as e:
-            print("Push error:", e)
+
+        except WebPushException as ex:
+            print("Push failed:", ex)
+
+    # notifications_collection.insert_one(payload)
+
+    notifications_collection.insert_one({
+    "title": title,
+    "body": body,
+    "image": image,
+    "url": url
+})
 
     return {"success": True}
 
+
+
+@app.get("/notifications")
+async def notifications():
+    data = list(notifications_collection.find(().sort("_id",-1).limit(20)))
+
+    for i in items:
+        i["_id"] = str(i["_id"])
+
+    return data
+
+# @app.get("/notifications")
+# async def notifications():
+#     items = list(notifications_collection.find().sort("_id",-1).limit(20))
+    
+#     for i in items:
+#         i["_id"] = str(i["_id"])
+
+#     return items
 # from fastapi import FastAPI, Request
 # from pywebpush import webpush, WebPushException
 # import sqlite3, json
