@@ -85,6 +85,48 @@ async def subscriber_count():
 # -----------------------------
 # Send Notification
 # -----------------------------
+# @app.post("/send_notification")
+# async def send_notification(request: Request):
+
+#     data = await request.json()
+
+#     title = data.get("title")
+#     body = data.get("body")
+#     image = data.get("image")
+#     url = data.get("url")
+
+#     payload = {
+#         "title": title,
+#         "body": body,
+#         "image": image,
+#         "url": url,
+#         "time": str(datetime.datetime.now())
+#     }
+
+#     subscribers = subscriptions_collection.find(
+#         {"endpoint": {"$exists": True}}
+#     )
+
+#     for subscriber in subscribers:
+#         try:
+
+#             webpush(
+#                 subscription_info={
+#                     "endpoint": subscriber["endpoint"],
+#                     "keys": subscriber["keys"]
+#                 },
+#                 data=json.dumps(payload),
+#                 vapid_private_key=VAPID_PRIVATE_KEY,
+#                 vapid_claims=VAPID_CLAIMS
+#             )
+
+#         except WebPushException as ex:
+#             print("Push failed:", ex)
+
+#     notifications_collection.insert_one(payload)
+
+#     return {"success": True}
+
 @app.post("/send_notification")
 async def send_notification(request: Request):
 
@@ -100,7 +142,7 @@ async def send_notification(request: Request):
         "body": body,
         "image": image,
         "url": url,
-        "time": str(datetime.datetime.now())
+        "time": str(datetime.datetime.utcnow())
     }
 
     subscribers = subscriptions_collection.find(
@@ -108,6 +150,7 @@ async def send_notification(request: Request):
     )
 
     for subscriber in subscribers:
+
         try:
 
             webpush(
@@ -127,7 +170,6 @@ async def send_notification(request: Request):
 
     return {"success": True}
 
-
 # -----------------------------
 # Notification History
 # -----------------------------
@@ -145,6 +187,8 @@ async def notifications():
         i["_id"] = str(i["_id"])
 
     return items
+
+
 
 
 # -----------------------------
