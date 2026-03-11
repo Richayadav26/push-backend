@@ -118,9 +118,9 @@ db = client[DB_NAME]
 print("MongoDB connected")
 print(db.list_collection_names())
 
-notifications_collection = db["notifications"]
-
 subscriptions_collection = db["subscriptions"]
+
+notifications_collection = db["notifications"]
 
 
 
@@ -342,7 +342,7 @@ async def send_notification(request: Request):
 async def notifications():
     data = list(notifications_collection.find(().sort("_id",-1).limit(20)))
 
-    for i in items:
+    for i in data:
         i["_id"] = str(i["_id"])
 
     return data
